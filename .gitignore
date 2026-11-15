@@ -26,7 +26,7 @@ android/local.properties
 *.jks
 *.keystore
 *.pfx
-!windows/HyperAudio.Rust/tests/fixtures/legacy-null-password.pfx
+windows/HyperAudio.Rust/tests/fixtures/legacy-certificate.sha256
 identity.dat
 identity.json
 preferences.json
@@ -35,7 +35,7 @@ receiver.log
 
 # Local historical implementations and investigation notes
 windows/HyperAudio.Windows/
-tests/
+/tests/
 third_party/nuget/
 docs/BUILD_REPORT.md
 docs/DEVICE_TEST.md

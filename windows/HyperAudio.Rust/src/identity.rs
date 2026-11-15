@@ -197,18 +197,60 @@ fn import_windows_pfx(data: &[u8]) -> Result<KeyStore> {
 mod tests {
     use super::*;
     #[test]
-    fn legacy_dotnet_null_password_keeps_certificate() {
-        let store =
-            import_windows_pfx(include_bytes!("../tests/fixtures/legacy-null-password.pfx"))
-                .unwrap();
+    fn windows_null_password_round_trip_keeps_certificate() {
+        let rcgen::CertifiedKey { cert, key_pair } =
+            rcgen::generate_simple_self_signed(vec!["temporary.test".into()]).unwrap();
+        let mut generated = KeyStore::new();
+        generated.add_entry(
+            "test",
+            KeyStoreEntry::PrivateKeyChain(PrivateKeyChain::new(
+                vec![1],
+                PrivateKey::from_der(&key_pair.serialize_der()).unwrap(),
+                vec![Certificate::from_der(cert.der()).unwrap()],
+            )),
+        );
+        let data = generated.writer("").write().unwrap();
+        let input = CRYPT_INTEGER_BLOB {
+            cbData: data.len() as u32,
+            pbData: data.as_ptr() as *mut u8,
+        };
+        // Generate the Windows null-password format in memory; never commit a private key.
+        let bytes = unsafe {
+            let native = PFXImportCertStore(
+                &input,
+                windows::core::w!(""),
+                CRYPT_EXPORTABLE | PKCS12_NO_PERSIST_KEY,
+            )
+            .unwrap();
+            let result = (|| -> windows::core::Result<Vec<u8>> {
+                let mut output = CRYPT_INTEGER_BLOB::default();
+                PFXExportCertStoreEx(
+                    native,
+                    &mut output,
+                    PCWSTR::null(),
+                    std::ptr::null(),
+                    EXPORT_PRIVATE_KEYS,
+                )?;
+                let mut bytes = vec![0; output.cbData as usize];
+                output.pbData = bytes.as_mut_ptr();
+                PFXExportCertStoreEx(
+                    native,
+                    &mut output,
+                    PCWSTR::null(),
+                    std::ptr::null(),
+                    EXPORT_PRIVATE_KEYS,
+                )?;
+                bytes.truncate(output.cbData as usize);
+                Ok(bytes)
+            })();
+            let _ = CertCloseStore(Some(native), 0);
+            result.unwrap()
+        };
+        let store = import_windows_pfx(&bytes).unwrap();
         let (_, chain) = store.private_key_chain().unwrap();
-        let actual: String = Sha256::digest(chain.certs()[0].as_der())
-            .iter()
-            .map(|b| format!("{b:02x}"))
-            .collect();
         assert_eq!(
-            actual,
-            include_str!("../tests/fixtures/legacy-certificate.sha256").trim()
+            Sha256::digest(chain.certs()[0].as_der()),
+            Sha256::digest(cert.der())
         );
         assert!(!chain.key().as_der().is_empty());
     }
