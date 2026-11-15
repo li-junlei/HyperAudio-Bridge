@@ -1,0 +1,47 @@
+# Local tools, diagnostics and deliverables
+.tools/
+dist/
+*.log
+*.user
+.vs/
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Build caches
+**/bin/
+**/obj/
+**/build/
+**/.gradle/
+**/.kotlin/
+**/target/
+**/__pycache__/
+*.pyc
+
+# SDK paths and signing / runtime credentials
+android/local.properties
+.env
+.env.*
+*.jks
+*.keystore
+*.pfx
+!windows/HyperAudio.Rust/tests/fixtures/legacy-null-password.pfx
+identity.dat
+identity.json
+preferences.json
+session.log
+receiver.log
+
+# Local historical implementations and investigation notes
+windows/HyperAudio.Windows/
+tests/
+third_party/nuget/
+docs/BUILD_REPORT.md
+docs/DEVICE_TEST.md
+docs/RELEASE_*.md
+
+# Unused design explorations
+design/icons/*preview*.png
+design/icons/*options*.png
+design/icons/*black*.png
